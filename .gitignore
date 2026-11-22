@@ -1,0 +1,6 @@
+# OS & Editor temporary files
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+*.tmp

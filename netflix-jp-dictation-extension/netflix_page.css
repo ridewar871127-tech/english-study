@@ -1,0 +1,15 @@
+/* Hide Netflix visual subtitles during Japanese dictation while keeping DOM updates active */
+body.njd-hide-subs .player-timedtext,
+body.njd-hide-subs .player-timedtext-text-container {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Docked Side-by-Side Layout: Shrink Netflix video container so right panel never covers video */
+body.njd-active.njd-dock-right .watch-video,
+body.njd-active.njd-dock-right .watch-video--player-view,
+body.njd-active.njd-dock-right [data-uia="watch-video"],
+body.njd-active.njd-dock-right #mockNetflixJpStage {
+  width: calc(100vw - min(430px, 46vw)) !important;
+  transition: width 0.22s ease;
+}

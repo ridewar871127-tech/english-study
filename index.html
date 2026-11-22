@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>Sitcom Dictation Studio | 미드 영어 받아쓰기 스튜디오</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Top Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">SD</div>
+      <div class="brand-title">
+        <h1>Sitcom &amp; Kindle English Studio</h1>
+        <p>유튜브 미드 · 쿠팡플레이 · 킨들(Kindle) 영어원서 정독 &amp; 노션 실시간 자동 단어장</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btnFreeMode" class="btn btn-sm btn-toggle" title="잠긴 대사도 자유롭게 이동할 수 있습니다">
+        🔓 자유 이동 모드: OFF
+      </button>
+      <button id="btnOpenVocabModal" class="btn btn-sm">
+        ★ 내 단어장 (<span id="savedVocabCount">0</span>)
+      </button>
+      <a href="/netflix-preview.html" class="btn btn-sm" style="background:#e50914; border-color:#f87171; color:#fff; text-decoration:none; font-weight:700;">
+        🔴 영어 넷플릭스 프리뷰
+      </a>
+      <a href="/netflix-jp-preview.html" class="btn btn-sm" style="background:#db2777; border-color:#f472b6; color:#fff; text-decoration:none; font-weight:700;">
+        🇯🇵 일본어 넷플릭스 프리뷰
+      </a>
+      <button id="btnOpenSrtModal" class="btn btn-sm btn-coupang">
+        🟦 쿠팡플레이 자막(.srt) 코스 추가
+      </button>
+      <button id="btnOpenImportModal" class="btn btn-sm btn-primary">
+        + 유튜브 클립 추가
+      </button>
+    </div>
+  </header>
+
+  <!-- Mode Filter Tabs -->
+  <nav class="mode-filter-bar" aria-label="학습 모드 전환">
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode-filter="all">전체 에피소드</button>
+      <button class="mode-tab" data-mode-filter="youtube">▶️ 유튜브 공식 클립 모드</button>
+      <button class="mode-tab companion-tab" data-mode-filter="companion">🟦 쿠팡플레이 정품 창 병행 모드</button>
+      <button class="mode-tab" id="tabKindleMode" data-mode-filter="kindle" style="border-color:#f59e0b; color:#fde68a; font-weight:800;">📖 킨들 영어원서 동반 모드</button>
+    </div>
+    <span id="modeTopHint" style="font-size:12px; color:var(--text-secondary);">
+      💡 <strong>📖 킨들 원서 동반 모드</strong>를 켜고 킨들 PC 앱에서 문장을 드래그해 <kbd>Ctrl</kbd>+<kbd>C</kbd>만 누르면 자동으로 끊어읽기·문장구조·단어장이 작동합니다!
+    </span>
+  </nav>
+
+  <!-- Sitcom Episode Selector Strip -->
+  <section id="episodeBar" class="episode-bar" aria-label="미국 드라마 에피소드 선택"></section>
+
+  <!-- Main Split Workspace -->
+  <main class="workspace">
+    <!-- Left Column: Video / Companion Hub & Dialogue Stepper -->
+    <section class="panel">
+      <!-- Mode A: Official YouTube Clip Player -->
+      <div id="youtubeConsole">
+        <div class="video-wrapper">
+          <div id="ytPlayer"></div>
+          <div id="preRollCurtain" style="display:none; position:absolute; inset:0; background:rgba(8,12,24,0.94); z-index:22; align-items:center; justify-content:center; flex-direction:column; gap:7px; color:#bae6fd; font-size:14px; font-weight:700; pointer-events:none; text-align:center; padding:16px;">
+            <span>🎯 받아쓰기 대사 시작 지점으로 정밀 이동 중...</span>
+            <span style="font-size:12px; color:#94a3b8; font-weight:500;">이전 대사 구간은 무음 고속으로 자동 건너뜁니다</span>
+          </div>
+          <div id="subtitleShield" class="subtitle-shield visible">
+            <span>청취 집중 가림막 ON (하단 시각 방해 차단)</span>
+          </div>
+        </div>
+
+        <div class="player-controls">
+          <div class="control-row">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button id="btnPlaySegment" class="btn btn-primary">
+                ▶ 대사 구간 듣기
+              </button>
+              <button id="btnAutoLoop" class="btn btn-toggle">
+                🔁 구간 반복: OFF
+              </button>
+              <button id="btnToggleShield" class="btn btn-sm btn-toggle active" title="영상 하단 자막 영역 가림막 토글">
+                🙈 하단 가림막
+              </button>
+            </div>
+            <span id="segmentTimeLabel" class="time-pill">00:00.0 ~ 00:00.0</span>
+          </div>
+
+          <div class="control-row" style="flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span style="font-size:12px; color:var(--text-secondary);">속도:</span>
+              <button class="btn btn-sm speed-btn" data-speed="0.75">0.75x</button>
+              <button class="btn btn-sm speed-btn" data-speed="0.85">0.85x</button>
+              <button class="btn btn-sm speed-btn btn-toggle active" data-speed="1">1.0x</button>
+            </div>
+            <div style="display:flex; gap:5px; align-items:center;">
+              <span style="font-size:12px; color:var(--text-secondary);">시작점:</span>
+              <button id="btnStartMinus" class="btn btn-sm" title="시작 시점 0.2초 앞당기기">-0.2s</button>
+              <span id="startOffsetLabel" style="font-size:12px; color:var(--text-secondary); min-width:34px; text-align:center;">0.0s</span>
+              <button id="btnStartPlus" class="btn btn-sm" title="앞 대사가 살짝 들리면 0.2초 뒤로 밀기">+0.2s</button>
+            </div>
+            <div style="display:flex; gap:5px; align-items:center;">
+              <span style="font-size:12px; color:var(--text-secondary);">끝점:</span>
+              <button id="btnExtendMinus" class="btn btn-sm" title="종료 시점 0.3초 줄이기">-0.3s</button>
+              <span id="endOffsetLabel" style="font-size:12px; color:var(--text-secondary); min-width:36px; text-align:center;">+0.0s</span>
+              <button id="btnExtendPlus" class="btn btn-sm" title="종료 시점 0.3초 늘리기">+0.3s</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode B: Coupang Play Official Window Companion Console -->
+      <div id="companionConsole" class="companion-console">
+        <div class="companion-top-banner">
+          <div>
+            <span class="show-badge companion-badge">🟦 쿠팡플레이 정품 창 병행 모드</span>
+            <div id="companionTargetEpisode" style="font-size:13px; font-weight:700; margin-top:5px; color:#e2e8f0;">
+              프렌즈 (Friends) → 시즌 1 → 1화
+            </div>
+          </div>
+          <button id="btnLaunchCoupangSplit" class="btn btn-coupang">
+            ❐ 쿠팡플레이 창 나란히 열기
+          </button>
+        </div>
+
+        <div class="companion-guide-steps">
+          <div><strong>1단계:</strong> 위 버튼을 눌러 화면 왼쪽에 쿠팡플레이 창을 띄우고 해당 에피소드를 재생하세요. (<kbd>Win</kbd>+<kbd>←</kbd> / <kbd>Win</kbd>+<kbd>→</kbd> 화면 반반 분할 추천)</div>
+          <div><strong>2단계:</strong> 쿠팡플레이 우측 하단 말풍선 아이콘에서 <strong>자막을 [끄기]</strong>로 설정한 뒤 아래 타임코드 구간을 듣고 받아쓰세요!</div>
+          <div><strong>꿀팁:</strong> 쿠팡플레이 창에서 <kbd>←</kbd> 키는 10초 되감기, <kbd>Space</kbd>는 일시정지/재생입니다.</div>
+        </div>
+
+        <div class="timecode-board">
+          <span class="timecode-label">⏱️ 쿠팡플레이 재생바에서 찾을 현재 대사 구간</span>
+          <div id="companionTimecodeDigits" class="timecode-digits">00:54 ~ 00:58</div>
+          <div id="companionSceneCue" class="scene-cue-box">
+            🎬 장면 가이드: 센트럴 퍼크 오프닝 첫 대화
+          </div>
+        </div>
+
+        <div class="companion-controls-row">
+          <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
+            <span style="font-size:12px; color:var(--text-secondary);">시간 싱크 보정:</span>
+            <button class="btn btn-sm sync-btn" data-sync="-5">-5s</button>
+            <button class="btn btn-sm sync-btn" data-sync="-1">-1s</button>
+            <button id="btnSyncReset" class="btn btn-sm" title="싱크 오프셋 0초로 초기화">0.0s</button>
+            <button class="btn btn-sm sync-btn" data-sync="1">+1s</button>
+            <button class="btn btn-sm sync-btn" data-sync="5">+5s</button>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button id="btnTtsNormal" class="btn btn-sm" title="잘 안 들릴 때 원어민 보조 음성(1.0배속)으로 확인합니다">
+              🔊 보조 발음 듣기
+            </button>
+            <button id="btnTtsSlow" class="btn btn-sm" title="연음이 빠를 때 느린 보조 음성(0.72배속)으로 확인합니다">
+              🐢 0.75x 느리게
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="sitcomTimelineWrap">
+        <div class="timeline-header">
+          <span id="timelineTitle">대사 목록 (순차 통과 시스템)</span>
+          <button id="btnResetEpisode" class="btn btn-sm" style="padding:3px 8px; font-size:11px;">진도 초기화</button>
+        </div>
+        <div id="timelineList" class="timeline-list"></div>
+      </div>
+
+      <!-- Mode C: Kindle for PC Reading Companion Console -->
+      <div id="kindleLeftConsole" style="display:none; flex-direction:column; gap:12px;">
+        <div style="background:linear-gradient(135deg, rgba(245,158,11,0.16), rgba(217,119,6,0.08)); border:1px solid #f59e0b; border-radius:12px; padding:13px 15px; display:flex; flex-direction:column; gap:9px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <span class="show-badge" style="background:#f59e0b; color:#1e1b4b; font-weight:900;">📖 KINDLE PC 실시간 동반자</span>
+              <div style="font-size:12.5px; color:#fef3c7; margin-top:5px; font-weight:600;">
+                킨들 창에서 모르는 영어 문장을 드래그해 <kbd>Ctrl</kbd>+<kbd>C</kbd> (또는 <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> 캡처)만 누르세요!
+              </div>
+            </div>
+            <button id="btnToggleKindleWatch" class="btn btn-sm" style="background:rgba(16,185,129,0.22); border-color:#10b981; color:#6ee7b7; font-weight:800;">
+              🟢 클립보드 자동 감지: ON
+            </button>
+          </div>
+
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <span style="font-size:12px; color:#fde68a; font-weight:700; white-space:nowrap;">📚 현재 원서 제목:</span>
+            <input id="kindleBookTitleInput" type="text" placeholder="킨들 복사 시 출처에서 자동 입력됩니다 (직접 입력 가능)" style="flex:1; min-width:180px; padding:6px 10px; border-radius:7px; border:1px solid rgba(245,158,11,0.45); background:rgba(9,13,26,0.8); color:#fff; font-size:12.5px;" />
+            <button id="btnToggleKindleAiKey" class="btn btn-sm" style="border-color:#818cf8; color:#c7d2fe;">✨ 원서 AI 키 설정</button>
+          </div>
+
+          <div id="kindleAiSetupBox" style="display:none; background:rgba(11,16,32,0.92); border:1px solid #4f46e5; border-radius:8px; padding:10px; flex-direction:column; gap:6px;">
+            <div style="font-size:11.5px; color:#cbd5e1; line-height:1.45;">
+              무료 Google Gemini API 키(<code>AIzaSy...</code>) 또는 OpenAI 키(<code>sk-...</code>)를 저장하면 <strong>모든 원서 문장의 끊어읽기 직독직해 · 문장구조 분해 · 문맥 어휘 풀이</strong>가 0.8초 만에 정밀 생성됩니다! (미입력 시 내장 오프라인 원서 구문 분석기가 작동합니다.)
+            </div>
+            <div style="display:flex; gap:6px;">
+              <input id="kindleAiKeyInput" type="password" placeholder="AIzaSy... 또는 sk-... 붙여넣기" style="flex:1; padding:7px 10px; border-radius:6px; border:1px solid #334675; background:#090d1a; color:#fff; font-size:12px;" />
+              <button id="btnSaveKindleAiKey" class="btn btn-sm btn-primary">저장</button>
+            </div>
+            <div id="kindleAiKeyMsg" style="font-size:11.5px; color:#6ee7b7;"></div>
+          </div>
+        </div>
+
+        <!-- Sample Book Passages & Direct Input -->
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <span style="font-size:12.5px; font-weight:700; color:var(--text-secondary);">분석할 영어원서 문장 (킨들 복사 시 자동 입력됨)</span>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <button class="btn btn-sm kindle-sample-btn" data-sample="0" style="padding:3px 8px; font-size:11px;">예시1: Atomic Habits</button>
+              <button class="btn btn-sm kindle-sample-btn" data-sample="1" style="padding:3px 8px; font-size:11px;">예시2: Great Gatsby</button>
+              <button class="btn btn-sm kindle-sample-btn" data-sample="2" style="padding:3px 8px; font-size:11px;">예시3: Sapiens</button>
+            </div>
+          </div>
+          <textarea
+            id="kindleInputArea"
+            rows="4"
+            placeholder="킨들 PC 프로그램에서 영어 문장을 드래그해 Ctrl + C를 누르면 이곳에 자동으로 들어오며 즉시 분석됩니다! (직접 붙여넣기 후 아래 분석 버튼을 눌러도 됩니다.)"
+            style="width:100%; padding:11px 13px; border-radius:10px; border:2px solid #2b3a63; background:var(--bg-input); color:#fff; font-size:14.5px; line-height:1.55; resize:vertical; font-family:Georgia, 'Pretendard', serif;"
+          ></textarea>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; gap:6px;">
+              <button id="btnKindleTtsNormal" class="btn btn-sm">🔊 원어민 낭독 (1.0x)</button>
+              <button id="btnKindleTtsSlow" class="btn btn-sm">🐢 천천히 듣기 (0.8x)</button>
+            </div>
+            <button id="btnAnalyzeKindle" class="btn btn-primary" style="background:#d97706; border-color:#f59e0b; font-weight:800;">
+              🔍 끊어읽기 · 문장구조 · 어휘 분석하기
+            </button>
+          </div>
+        </div>
+
+        <div class="timeline-header" style="margin-top:4px;">
+          <span>📜 방금 읽은 원서 문장 기록 (<span id="kindleHistoryCount">0</span>)</span>
+          <button id="btnClearKindleHistory" class="btn btn-sm" style="padding:2px 8px; font-size:11px;">기록 비우기</button>
+        </div>
+        <div id="kindleHistoryList" class="timeline-list" style="max-height:240px;"></div>
+      </div>
+    </section>
+
+    <!-- Right Column: Dictation Arena & Vocab/Grammar Commentary -->
+    <section class="panel dictation-panel">
+      <div id="sitcomRightArena" style="display:flex; flex-direction:column; gap:16px;">
+      <div class="scene-context-bar">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span id="lineStepBadge" class="time-pill">Line 1 / 12</span>
+          <span id="speakerChip" class="speaker-chip">🎙️ Speaker</span>
+        </div>
+        <p id="sceneContextNote" class="context-note">장면 상황 설명</p>
+      </div>
+
+      <!-- Word Slot Blueprint / Diff Display -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:700; color:var(--text-secondary);">
+            단어 매칭 슬롯 <span id="wordCountInfo" style="font-weight:400;"></span>
+          </span>
+          <span style="font-size:12px; color:var(--text-muted);">문장부호·대소문자 무관, 축약형(I'm ↔ I am 등) 자동 호환</span>
+        </div>
+        <div id="wordSlots" class="word-slots"></div>
+      </div>
+
+      <!-- Dictation Textarea & Grading Actions -->
+      <div class="input-section">
+        <textarea
+          id="dictationInput"
+          class="dictation-textarea"
+          placeholder="들리는 영어 대사를 받아적은 뒤 Enter를 눌러 채점하세요... (다시 듣기 / 보조 발음: Ctrl + Space)"
+          spellcheck="false"
+          autocomplete="off"
+        ></textarea>
+
+        <div class="action-bar">
+          <div class="hint-group">
+            <button id="btnHintLetters" class="btn btn-sm">
+              💡 첫 글자 힌트
+            </button>
+            <button id="btnHintOneWord" class="btn btn-sm">
+              🔍 안 들리는 단어 1개 열기
+            </button>
+            <button id="btnGiveUp" class="btn btn-sm">
+              🏳️ 정답 확인 후 학습하기
+            </button>
+          </div>
+
+          <div class="submit-group">
+            <button id="btnCheckAnswer" class="btn btn-primary">
+              ✓ 받아쓰기 채점 (Enter)
+            </button>
+            <button id="btnNextLine" class="btn btn-success" style="display:none;">
+              다음 대사로 이동 (Enter) →
+            </button>
+          </div>
+        </div>
+
+        <div class="shortcut-hint">
+          <span><kbd>Ctrl</kbd> + <kbd>Space</kbd> 구간 다시 듣기 (병행 모드는 보조 발음 재생)</span>
+          <span><kbd>Enter</kbd> 채점 / 통과 시 다음 대사</span>
+          <span><kbd>Alt</kbd> + <kbd>H</kbd> 첫 글자 힌트</span>
+        </div>
+      </div>
+
+      <!-- Grading Feedback Banner -->
+      <div id="feedbackBanner" class="feedback-banner">
+        <span id="feedbackText"></span>
+        <span id="feedbackAccuracy" style="font-size:13px;"></span>
+      </div>
+
+      <!-- Unlocked Deep Study Section: Translation, Pronunciation, Vocab/Idioms, Grammar -->
+      <div id="studySection" class="study-section">
+        <div class="answer-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+            <div>
+              <div class="answer-en" id="answerEn"></div>
+              <div class="answer-ko" id="answerKo"></div>
+            </div>
+            <button id="btnReplayFromAnswer" class="btn btn-sm">🔊 다시 듣기</button>
+          </div>
+          <div id="pronunciationTip" class="pronunciation-tip"></div>
+        </div>
+
+        <div class="study-grid">
+          <div class="study-box">
+            <div class="study-box-title">
+              📚 핵심 단어 · 구동사(Phrasal Verbs) · 관용어(Idioms) 해설
+            </div>
+            <div id="vocabList" class="vocab-list"></div>
+          </div>
+
+          <div class="study-box">
+            <div class="study-box-title" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>🧩 대사별 핵심 문법 포인트 (Grammar Analysis)</span>
+              <button id="btnSaveStudioGrammar" class="btn btn-sm">☆ 문법 저장</button>
+            </div>
+            <div class="grammar-card">
+              <div id="grammarTitle" class="grammar-pattern"></div>
+              <div id="grammarDesc" class="grammar-desc"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- Right Column Mode C: Kindle Deep Book Reading Studio -->
+      <div id="kindleRightArena" style="display:none; flex-direction:column; gap:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-bottom:8px; border-bottom:1px solid var(--border);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="time-pill" id="kindleSourceBadge" style="border-color:#f59e0b; color:#fde68a;">📖 원서 구문 정독 스튜디오</span>
+            <span id="kindleAnalyzeStatus" style="font-size:12px; color:#93c5fd; font-weight:600;">문장 대기 중</span>
+          </div>
+          <button id="btnOpenNotionFromKindle" class="btn btn-sm" style="border-color:#818cf8; color:#c7d2fe;">
+            📓 노션 단어장 설정 / 확인
+          </button>
+        </div>
+
+        <!-- 1. Slash-by-Slash Chunk Reading (끊어읽기 직독직해) -->
+        <div class="answer-card" style="display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13.5px; font-weight:800; color:#fde68a;">✂️ 1. 긴 원서 문장 끊어읽기 (직독직해 Sense-Group)</span>
+            <span style="font-size:11.5px; color:var(--text-muted);">앞에서부터 순서대로 의미를 이어 읽으세요</span>
+          </div>
+          <div id="kindleSlashChunks" style="display:flex; flex-direction:column; gap:7px;"></div>
+          <div style="margin-top:4px; padding:10px 12px; background:rgba(15,23,42,0.75); border-left:3px solid #38bdf8; border-radius:6px;">
+            <div style="font-size:11.5px; font-weight:800; color:#7dd3fc; margin-bottom:3px;">🇰🇷 자연스러운 전체 해석</div>
+            <div id="kindleFullKo" style="font-size:14px; color:#f1f5f9; line-height:1.6; font-weight:600;"></div>
+          </div>
+          <div id="kindleBackboneBox" class="pronunciation-tip" style="margin-top:2px;"></div>
+        </div>
+
+        <!-- 2. Syntactic Architecture & Literary Grammar + 3. Contextual Book Vocabulary -->
+        <div class="study-grid">
+          <div class="study-box">
+            <div class="study-box-title">
+              📐 2. 원서 문장 구조 &amp; 핵심 문법 분해 (노션 저장 지원)
+            </div>
+            <div id="kindleGrammarList" class="vocab-list"></div>
+          </div>
+
+          <div class="study-box">
+            <div class="study-box-title">
+              📚 3. 원서 문맥 어휘 · 숙어 뜻풀이 (클릭 시 노션 실시간 저장)
+            </div>
+            <div id="kindleVocabList" class="vocab-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Saved Vocabulary Modal -->
+  <div id="vocabModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>★ 내 단어 · 문법장 &amp; 📓 노션 실시간 자동 연동</h3>
+        <button id="btnCloseVocabModal" class="btn btn-sm">닫기</button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:12px;">
+        <div style="background:rgba(79,70,229,0.12); border:1px solid #4f46e5; border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <strong style="font-size:13.5px; color:#c7d2fe;">📓 노션(Notion) 실시간 자동 저장 설정</strong>
+            <span id="webNotionStatusBadge" style="font-size:12px; color:#94a3b8;">⚪ 미연결</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-secondary); line-height:1.5;">
+            1) <a href="https://www.notion.so/my-integrations" target="_blank" style="color:#93c5fd;">notion.so/my-integrations</a>에서 무료 통합 생성 후 토큰(<code>ntn_...</code>) 복사 ·
+            2) 연결할 노션 페이지 우측 상단 <strong>[•••] → [연결]</strong>에서 만든 통합 추가 후 <strong>[공유 → 링크 복사]</strong>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <input id="webNotionTokenInput" type="password" placeholder="1. 노션 API 토큰 (ntn_... 또는 secret_...)" style="padding:8px 10px; border-radius:7px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:12.5px;" />
+            <input id="webNotionUrlInput" type="text" placeholder="2. 노션 페이지 링크(URL) 붙여넣기" style="padding:8px 10px; border-radius:7px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:12.5px;" />
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <label style="font-size:12px; color:var(--text-secondary); display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input id="webNotionAutoCheck" type="checkbox" checked /> 단어·문법 저장 버튼 클릭 시 실시간 노션 자동 전송
+            </label>
+            <div style="display:flex; gap:6px;">
+              <button id="btnWebNotionBulkSync" class="btn btn-sm" style="display:none; border-color:#10b981; color:#6ee7b7;">🔄 미전송분 일괄 동기화</button>
+              <button id="btnWebNotionConnect" class="btn btn-sm btn-primary">🔌 연결 &amp; 노션 표 자동 생성</button>
+            </div>
+          </div>
+          <div id="webNotionMsg" style="font-size:12px; color:#6ee7b7;"></div>
+        </div>
+        <div id="savedVocabList" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coupang Play SRT / Script Companion Course Modal -->
+  <div id="srtModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>🟦 쿠팡플레이 병행 학습 코스 추가 (.srt 자막 / 대본)</h3>
+        <button id="btnCloseSrtModal" class="btn btn-sm">닫기</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13.5px; color:var(--text-secondary);">
+          쿠팡플레이에서 시청할 에피소드의 영어 자막 파일(<code>.srt</code>)을 선택하거나 대본을 붙여넣으면, 타임코드 싱크 보정 및 핵심 숙어·문법 패턴 분석이 포함된 병행 받아쓰기 코스가 즉시 생성됩니다.
+        </p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <input
+            id="srtShowInput"
+            type="text"
+            value="Friends (쿠팡플레이)"
+            placeholder="드라마 이름 (예: Friends)"
+            style="padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:13.5px;"
+          />
+          <input
+            id="srtTitleInput"
+            type="text"
+            placeholder="회차 제목 (예: 시즌1 2화 본편)"
+            style="padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:13.5px;"
+          />
+        </div>
+        <div>
+          <label style="font-size:12.5px; color:var(--text-secondary); display:block; margin-bottom:6px;">
+            방법 1: PC에서 영어 <code>.srt</code> 자막 파일 불러오기
+          </label>
+          <input id="srtFileInput" type="file" accept=".srt,.txt" style="font-size:13px; color:var(--text-secondary);" />
+        </div>
+        <div>
+          <label style="font-size:12.5px; color:var(--text-secondary); display:block; margin-bottom:6px;">
+            방법 2: 또는 SRT 텍스트 / 영어 대본 직접 붙여넣기 (한 줄에 한 문장도 가능)
+          </label>
+          <textarea
+            id="srtRawTextarea"
+            placeholder="1&#10;00:00:54,000 --> 00:00:57,600&#10;There's nothing to tell!&#10;&#10;또는 시간 정보 없이 영어 대사만 줄바꿈으로 붙여넣어도 코스가 생성됩니다."
+            style="width:100%; min-height:120px; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:13px; font-family:Consolas, monospace;"
+          ></textarea>
+        </div>
+        <div id="srtStatusMsg" style="font-size:13px; color:var(--warning);"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button id="btnCreateSrtCourse" class="btn btn-coupang">병행 학습 코스 생성하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom YouTube Clip Import Modal -->
+  <div id="importModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>+ 유튜브 미드 클립 직접 추가하기</h3>
+        <button id="btnCloseImportModal" class="btn btn-sm">닫기</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13.5px; color:var(--text-secondary);">
+          외부 임베드와 영어 자막이 있는 공식 미드 유튜브 URL(예: <code>https://www.youtube.com/watch?v=...</code>)을 입력하면 자동으로 대사 구간을 추출해 받아쓰기 코스로 추가합니다.
+        </p>
+        <input
+          id="importUrlInput"
+          type="text"
+          placeholder="https://www.youtube.com/watch?v=..."
+          style="width:100%; padding:11px 14px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:14px;"
+        />
+        <div id="importStatusMsg" style="font-size:13px; color:var(--warning);"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button id="btnRunImport" class="btn btn-primary">자막 추출 및 코스 생성</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="episodes.js"></script>
+  <script src="kindle_analyzer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

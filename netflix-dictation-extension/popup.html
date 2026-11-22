@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Netflix Dictation Studio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 395px;
+      min-height: 410px;
+      max-height: 590px;
+      background: #0f1629;
+      color: #f1f5f9;
+      font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #263354;
+      padding-bottom: 10px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 14.5px;
+    }
+    .n-badge {
+      background: #e50914;
+      color: #fff;
+      font-weight: 900;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 13px;
+    }
+    .btn {
+      background: #1d2947;
+      border: 1px solid #334675;
+      color: #e2e8f0;
+      padding: 6px 10px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:hover { background: #26365c; }
+    .btn-red { background: #e50914; border-color: #e50914; color: #fff; }
+    .btn-blue { background: #0284c7; border-color: #38bdf8; color: #fff; }
+    .btn-green { background: #10b981; border-color: #10b981; color: #052e16; }
+    .box {
+      background: #16203a;
+      border: 1px solid #283861;
+      border-radius: 10px;
+      padding: 11px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .resume-card {
+      display: none;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(37, 99, 235, 0.16));
+      border: 1px solid #38bdf8;
+    }
+    .resume-card.show { display: flex; }
+    input {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid #334675;
+      background: #0b1020;
+      color: #fff;
+      font-size: 12px;
+    }
+    .vocab-list {
+      overflow-y: auto;
+      max-height: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .v-card {
+      background: #0c1224;
+      border: 1px solid #243359;
+      border-radius: 8px;
+      padding: 9px 11px;
+    }
+    .v-top { display: flex; justify-content: space-between; align-items: center; }
+    .v-term { font-size: 13.5px; font-weight: 800; color: #f472b6; }
+    .v-mean { font-size: 12.5px; color: #e2e8f0; margin-top: 3px; font-weight: 600; }
+    .v-sent { font-size: 11.5px; color: #93c5fd; margin-top: 3px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <div class="logo">
+      <span class="n-badge">N</span>
+      <span>Sitcom Dictation Studio</span>
+    </div>
+    <button id="btnGoNetflix" class="btn btn-red">넷플릭스 홈</button>
+  </div>
+
+  <!-- Last Studied Session Resume Card -->
+  <div id="resumeCard" class="box resume-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <span style="font-size:12px; font-weight:800; color:#7dd3fc;">📌 마지막 학습 이어하기</span>
+      <span id="resumeMeta" style="font-size:11px; color:#cbd5e1;"></span>
+    </div>
+    <div id="resumeTitle" style="font-size:13px; font-weight:700; color:#fff;"></div>
+    <button id="btnLaunchResume" class="btn btn-blue" style="width:100%; padding:8px;">
+      ▶ 마지막 학습 대사 지점 바로 열기
+    </button>
+  </div>
+
+  <div class="box">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:12px; font-weight:800; color:#c7d2fe;">📓 노션(Notion) 실시간 자동 저장</span>
+      <span id="pNotionBadge" style="font-size:10.5px; color:#94a3b8;">⚪ 미연결</span>
+    </div>
+    <input id="pNotionToken" type="password" placeholder="1. 노션 API 토큰 (ntn_... 또는 secret_...)" />
+    <input id="pNotionUrl" type="text" placeholder="2. 노션 페이지 링크(URL) 붙여넣기" />
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+      <button id="btnPopupNotionConnect" class="btn" style="background:#4f46e5; border-color:#6366f1; color:#fff; flex:1;">🔌 노션 연결 &amp; 표 생성</button>
+      <button id="btnPopupNotionSync" class="btn" style="border-color:#34d399; color:#6ee7b7; display:none;">🔄 일괄전송</button>
+    </div>
+    <div id="pNotionMsg" style="font-size:11px; color:#6ee7b7; line-height:1.35;"></div>
+  </div>
+
+  <div class="box">
+    <div style="font-size:12px; font-weight:700;">✨ AI 심층 해설용 API 키 (선택)</div>
+    <div style="display:flex; gap:6px;">
+      <input id="apiInput" type="password" placeholder="AIzaSy... 또는 sk-... (미입력 시 내장 사전 작동)" />
+      <button id="btnSaveKey" class="btn">저장</button>
+    </div>
+    <div id="saveMsg" style="font-size:11px; color:#6ee7b7;"></div>
+  </div>
+
+  <div class="box" style="flex:1;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+      <span style="font-size:12.5px; font-weight:800;">★ 내 단어·문법 학습장 (<span id="vCount">0</span>)</span>
+      <div style="display:flex; gap:5px;">
+        <button id="btnPopupCsv" class="btn btn-green">📊 엑셀(.csv)</button>
+        <button id="btnPopupTxt" class="btn">📝 메모장(.txt)</button>
+      </div>
+    </div>
+    <div style="display:flex; gap:4px;">
+      <button class="btn p-filter" data-pf="all" style="padding:3px 8px; font-size:11px; border-color:#6366f1;">전체</button>
+      <button class="btn p-filter" data-pf="vocab" style="padding:3px 8px; font-size:11px;">📚 단어·숙어</button>
+      <button class="btn p-filter" data-pf="grammar" style="padding:3px 8px; font-size:11px;">🧩 문법</button>
+    </div>
+    <div id="vList" class="vocab-list"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
